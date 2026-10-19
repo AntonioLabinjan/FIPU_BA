@@ -22,4 +22,4 @@
 - Na kraju ukratko objasni što si promijenio i zašto.
 
 ## Greške koje je AI već radio u ovom projektu
-- (dopunjava student)
+- Kodiraj sadržaj frontenda da bude na engleskom

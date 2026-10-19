@@ -2,4 +2,4 @@
 
 Autor: Antonio Labinjan
 
-Jedna rečenica: što aplikacija radi i za koju zajednicu.
+BoxChain je decentralizirana platforma za boksačku zajednicu koja omogućuje menadžerima upravljanje profilima boksača, a organizatorima transparentnu evidenciju mečeva i rezultata na blockchainu.

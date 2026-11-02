@@ -146,6 +146,24 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 - **Kada:** pokuša se prenijeti score i saldo na novi novčanik.
 - **Tada:** zahtjev ne uspije s točnom porukom `Only the current boxer wallet can authorize recovery.`
 
+### K11 — Pregled salda i statusa karijere
+
+- **Zadano:** boksač je registriran.
+- **Kada:** zatraži pregled svoje karijere.
+- **Tada:** prikazuju se njegov trenutačni saldo BOX i status karijere (aktivna ili završena).
+
+### K12 — Zabrana samostalnog prijenosa tokena
+
+- **Zadano:** boksač pokušava prenijeti BOX izvan poravnanja potvrđenog meča.
+- **Kada:** pokuša samostalni prijenos ili pozove `transferFrom` izvan poravnanja meča.
+- **Tada:** prijenos ne uspije i salda ostanu nepromijenjena. Prijenos kroz potvrđeni meč primjenjuje K3 ili K4.
+
+### K13 — Metapodaci BoxTokena
+
+- **Zadano:** BoxToken je dostupan.
+- **Kada:** zatraže se naziv, simbol i broj decimala tokena.
+- **Tada:** vraćaju se `BoxToken`, `BOX` i `18`.
+
 ## Izvan opsega
 
 - Administratorske uloge i centralno upravljanje.
@@ -163,4 +181,12 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 
 ## Sljedivost
 
-Odluke iz razgovora: BoxToken (BOX), 18 decimala, početni saldo 50 BOX po boksaču, nagrada od 1 BOX za pobjedu, prijenos od 5 BOX gubitnika pobjedniku, remi bez promjene salda, kraj karijere pri saldu 0, P2P potvrda ishoda od oba boksača, bez administratora, te oporavak samo uz autorizaciju starog novčanika.
+| Funkcija | Kriteriji |
+|---|---|
+| Samostalna registracija boksača i početna dodjela 50 BOX | K1, K2 |
+| Prijava i potvrda ishoda pobjeda/poraz te poravnanje salda i nagrade | K3, K4, K6, K7, K8 |
+| Prijava i potvrda remija | K5, K6, K7, K8 |
+| Pregled salda i statusa karijere | K11 |
+| Prijenos BOX u sklopu potvrđenog meča i zabrana samostalnog prijenosa | K3, K4, K5, K12 |
+| Prijenos scorea i salda na novi novčanik | K9, K10 |
+| Čitanje metapodataka BoxTokena | K13 |

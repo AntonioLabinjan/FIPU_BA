@@ -20,6 +20,7 @@
 - Poruke u require piši bez dijakritike.
 - Nikad ne traži, ne ispisuj i ne spremaj privatne ključeve.
 - Na kraju ukratko objasni što si promijenio i zašto.
+- Drži backend skripte za rad s eth u frontend kodu kako ne bismo nepotrebno nagomilavali fajlove
 
 ## Greške koje je AI već radio u ovom projektu
 - Kodiraj sadržaj frontenda da bude na engleskom

@@ -7,4 +7,5 @@ cache/
 artifacts/
 coverage/
 typechain-types/
+types/
 .DS_Store

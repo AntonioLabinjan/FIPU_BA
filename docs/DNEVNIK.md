@@ -19,6 +19,13 @@
 - Commit: 69dd05e
 
 ## T3 - Tablica
+- Datum: 2026-11-02
+- Cilj termina: Recenzirati specifikaciju BoxChain, zabilježiti odluke o nalazima te povezati funkcije s kriterijima prihvaćanja.
+- Najkorisniji prompt (kopiran u cijelosti): U SPEC-u popuni Sljedivost: tablicu Funkcija | Kriteriji. Svaki kriterij mora se pojaviti barem jednom. Funkcija bez kriterija dobiva kriterij; kriterij bez funkcije znači da funkcija nedostaje.
+- Što je AI napravio dobro: Dodao je kriterije K11–K13 za pregled salda i statusa karijere, zabranu samostalnih prijenosa tokena te metapodatke BoxTokena. Popunio je Sljedivost tablicom koja povezuje funkcije s kriterijima K1–K13.
+- Provjera: Ručno pregledana izmjena u SPEC.md; provjereno je da je svaki kriterij od K1 do K13 naveden barem jednom u tablici Sljedivost.
+- Commit: d5ca0256c86e8b732d59383ee2761c87149821d5
+
 | Nalaz | Prijedlog rješenja | Odluka (prihvaćeno / odbijeno) | Obrazloženje |
 |---|---|---|---|
 | Nije definiran jedinstveni identifikator meča ni zaštita od ponovnog poravnanja. | Svaki meč ima jedinstveni ID; poravnati meč ne može se ponovno obraditi. | Prihvaćam |Unique ID mi je najjednostavnije rješenje ovog problema |
@@ -31,3 +38,16 @@
 | Nije definirano što oporavak radi s neriješenim prijavama meča. | Oporavak s neriješenom prijavom pada bez promjene stanja. |Prihvaćeno |Nakon isteka roka, prijava će se smatrat poništenom i oporavak će biti dopušten |
 | Nisu definirane provjere koje zabranjuju samostalni prijenos tokena. | Izravni `transfer` i `transferFrom` izvan poravnanja meča padaju; testirati i točne količine tokena s 18 decimala. |Prihvaćeno |Prijenos se veže uz potvrđeni meč i tokeni se ne mogu prenijeti van tog slučaja |
 | Kriteriji ne provjeravaju ukupnu količinu tokena ni ponovljeno poravnanje. | Registracija stvara 50 BOX, pobjeda točno 1 BOX, prijenos ne mijenja ukupnu količinu, a remi je ne mijenja. |Prihvaćeno |Tehnički gledano, ima smisla te je u skladu s logičkim pravilima|
+
+## T4 - Provjera kriterija BoxChainTokena
+- Datum: 2026-11-02
+- Cilj termina: Usporediti tri očekivana ponašanja tokena sa stvarnim rezultatima.
+- Najkorisniji prompt (kopiran u cijelosti): Odaberi tri kriterija o tokenu iz svog SPEC-a: jedan uspješan, jedan neuspješan koji se tiče ovlasti i jedan po izboru (npr. prenosivost ili granica iznosa). Svaki klikni u Remixu; račune mijenjaj u izborniku Account, a tekst upiši u navodnicima.
+- Provjera: Pokrenuti lokalne Hardhat testove jer Remix se nije učitao. Rezultat: 8 testova prošlo.
+- Nalaz i odluka: Nema odstupanja u tri provjerena ponašanja; za ove provjere nisu potrebne izmjene koda ni SPEC-a. Ovo je lokalna automatizirana provjera, ne ručno klikanje u Remixu.
+
+| Provjera | Očekivano prema SPEC-u | Dobiveno | Nalaz (kriv kod ili SPEC?) | Korekcija |
+|---|---|---|---|---|
+| K13 — čitanje metapodataka | `name()` vraća `"BoxToken"`, `symbol()` vraća `"BOX"`, a `decimals()` vraća `18`. | Dobivene su vrijednosti `"BoxToken"`, `"BOX"` i `18`. | Nema odstupanja. | Nije potrebna. |
+| Ovlasti — poziv `mint` s računa koji nije modul | Samo modul smije izdavati tokene; poziv drugog računa mora pasti. | Poziv je pao s `UnauthorizedModule`; saldo i ukupna količina nisu promijenjeni. | Nema odstupanja. | Nije potrebna. |
+| K12 — samostalni `transfer` | Prijenos izvan potvrđenog meča mora pasti, a salda ostati nepromijenjena. | Poziv je pao s `StandaloneTransfersDisabled`; salda su ostala nepromijenjena. | Nema odstupanja. | Nije potrebna. |

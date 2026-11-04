@@ -57,6 +57,7 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 - **Kada pada:** ako poziv ne potpisuje stari novčanik.
 - **Poruka greške:** `Only the current boxer wallet can authorize recovery.`
 - **Ograničenje:** ako je pristup starom novčaniku izgubljen, prijenos nije moguće autorizirati i oporavak nije podržan.
+- **Ograničenje implementacije:** oporavak nije moguć dok boksač ima neprijavljene mečeve jer se oba izvještaja moraju vezati uz iste novčanike.
 
 ## Matrica ovlasti
 
@@ -77,6 +78,7 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 - Status karijere: aktivna ili završena.
 - Prijavljeni ishodi mečeva i stanje njihove potvrde od oba boksača.
 - Stanje BOX tokena, uključujući početnu dodjelu i nagrade za pobjedu.
+- Adresa tokena dostupna je preko modula; modul pri deployu stvara pripadajući BoxToken.
 
 ## Što se NE sprema na blockchain
 

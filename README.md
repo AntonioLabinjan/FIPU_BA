@@ -1,43 +1,44 @@
-# BoxChain Wallet
+# BoxChain
 
-Kratka tehnička dokumentacija za frontend koji omogućuje povezivanje MetaMask walleta i slanje Sepolia ETH-a.
+BoxChain tracks on-chain boxing careers on Sepolia. Boxers register their wallets, report match outcomes with their opponents, and view their BOX score and career status.
 
-## Tehnologije
+## Stack
 
-- Vue 3 s `<script setup>` i Composition API-jem
-- Vite za razvoj i izgradnju aplikacije
-- MetaMask Ethereum Provider API za pristup walletu i slanje transakcija
-- Sepolia testna mreža (chain ID `11155111`)
+- Vue 3, Pinia, and Vite in `frontend/`
+- ethers v6 with the MetaMask provider
+- Solidity `^0.8.24` and OpenZeppelin Contracts 5.x
+- Hardhat 3 with Mocha and ethers
+- Sepolia (chain ID `11155111`)
 
-## Što je napravljeno
+## Contract behavior
 
-- **Povezivanje walleta:** gumb traži pristup MetaMask računu. Sučelje prikazuje skraćenu adresu i trenutačnu mrežu; promjene računa i mreže u MetaMasku ažuriraju sučelje.
-- **Sepolia mreža:** slanje je omogućeno samo na Sepoliji. Ako wallet koristi drugu mrežu, sučelje nudi prebacivanje, a po potrebi i dodavanje Sepolije u MetaMask.
-- **Slanje ETH-a:** obrazac prima adresu primatelja i iznos. Aplikacija provjerava format adrese i iznos (više od nule, do 18 decimalnih mjesta), pretvara ETH u wei i šalje zahtjev MetaMasku.
-- **Potpisivanje transakcije:** transakciju potvrđuje korisnik u MetaMasku. Privatni ključevi ne ulaze u aplikaciju.
-- **Povratna informacija:** sučelje prikazuje odbijene/neuspjele zahtjeve i poveznicu na transakciju u Sepolia Etherscanu nakon što wallet vrati njezin hash.
+`BoxChainModul` deploys and owns its `BoxChainToken`. Registering a wallet allocates 50 BOX. A match affects balances only after both registered boxers report complementary results; a win transfers up to 5 BOX from the loser and mints 1 BOX for the winner. Draws do not change balances. Wallet recovery requires approval from the current wallet and no unresolved match reports.
 
-## Pokretanje lokalno
+## Configure and run the frontend
 
-Walletta nije potrebno spajati da bi se aplikacija pokrenula. Za slanje transakcija potreban je MetaMask:
+Run the frontend and connect MetaMask on Sepolia. If no module address is configured, the app offers a **Deploy contracts** action. Review and approve the transaction in MetaMask; your connected wallet pays Sepolia gas. The deployment creates `BoxChainModul` and its `BoxChainToken`.
+
+The confirmed module address is saved in that browser. To configure it explicitly (for example, in another browser), copy `frontend/.env.example` to `frontend/.env.local` and set the deployed address:
+
+```dotenv
+VITE_BOXCHAIN_MODULE_ADDRESS=0xYourDeployedModuleAddress
+```
+
+The app reads the BoxToken address from the module contract. It never needs a private key or a separately configured token address. Use MetaMask on Sepolia and fund it with Sepolia ETH for transaction fees.
 
 ```bash
 npm --prefix frontend install
 npm --prefix frontend run dev
 ```
 
-Otvori lokalni URL koji Vite ispiše u terminalu (uobičajeno `http://localhost:5173`). Za korištenje pošalji testni ETH na Sepoliji; stvarni ETH se ne šalje.
-
-Produkcijska izgradnja:
+Build the frontend with:
 
 ```bash
 npm --prefix frontend run build
 ```
 
-## Glavne datoteke
+Run the contract tests from the repository root with:
 
-- `frontend/src/App.vue` — MetaMask povezivanje, provjera mreže i slanje transakcije.
-- `frontend/src/style.css` — izgled i responzivni raspored sučelja.
-- `frontend/index.html` — naslov i početna HTML stranica.
-
-Ova verzija šalje obične ETH transakcije izravno putem MetaMaska; ne koristi pametni ugovor niti sama provjerava konačnu potvrdu transakcije na blockchainu.
+```bash
+npm test
+```

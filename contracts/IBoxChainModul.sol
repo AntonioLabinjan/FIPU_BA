@@ -23,4 +23,22 @@ interface IBoxChainModul {
 
     // Role: Public; SPEC: K7.
     function isCareerActive(address boxer) external view returns (bool);
+
+    // Role: Public; returns the BoxToken deployed and managed by this module.
+    function boxToken() external view returns (address);
+
+    // Role: Public; exposes whether both participants have reported a match.
+    function getMatchStatus(
+        uint256 matchId
+    )
+        external
+        view
+        returns (
+            bool exists,
+            bool completed,
+            address boxer1,
+            address boxer2,
+            MatchResult result1,
+            MatchResult result2
+        );
 }

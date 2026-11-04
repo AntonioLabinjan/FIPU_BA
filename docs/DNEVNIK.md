@@ -51,3 +51,16 @@
 | K13 — čitanje metapodataka | `name()` vraća `"BoxToken"`, `symbol()` vraća `"BOX"`, a `decimals()` vraća `18`. | Dobivene su vrijednosti `"BoxToken"`, `"BOX"` i `18`. | Nema odstupanja. | Nije potrebna. |
 | Ovlasti — poziv `mint` s računa koji nije modul | Samo modul smije izdavati tokene; poziv drugog računa mora pasti. | Poziv je pao s `UnauthorizedModule`; saldo i ukupna količina nisu promijenjeni. | Nema odstupanja. | Nije potrebna. |
 | K12 — samostalni `transfer` | Prijenos izvan potvrđenog meča mora pasti, a salda ostati nepromijenjena. | Poziv je pao s `StandaloneTransfersDisabled`; salda su ostala nepromijenjena. | Nema odstupanja. | Nije potrebna. |
+
+## T5 - Povezivanje BoxChain frontenda i priprema deploya
+- Datum: 2026-11-04
+- Cilj termina: Povezati frontend s BoxChain ugovorima, omogućiti korištenje aplikacije na Sepoliji i pripremiti deploy modula iz MetaMaska.
+- Najkorisniji promptovi:
+  - „Now, your task is to modify the frontend so it is connected to existing contracts in contracts subfolder and make e2e functional app“
+  - „We need to deploy our module“
+- Što je AI napravio dobro: Dodao je nedostajuću implementaciju `BoxChainModul`, koja pri deployu kreira `BoxChainToken`, te testove za registraciju, prijavu/poravnanje mečeva, remi, završetak karijere i oporavak novčanika. Frontend je povezan s ugovorima preko ethers v6 i omogućuje pregled BOX salda/statusa karijere, registraciju, prijavu i provjeru mečeva te oporavak novčanika. Dodan je i deploy tok koji koristi potpis u MetaMasku, sprema adresu modula u browser te je prikazuje nakon potvrde transakcije.
+- Što je AI napravio drugačije nego što sam očekivao: U repozitoriju nije postojala implementacija `BoxChainModul`, samo sučelje, pa ju je dodao zajedno s testovima. Nije izvršio stvarni Sepolia deploy jer integrirani browser nije imao MetaMask; transakcija nije poslana i adresa ugovora još nije dobivena.
+- Provjera: `npm test` — 18 testova prošlo; `npm --prefix frontend run build` — uspješan; lokalna browser provjera prikaza aplikacije — uspješna. Stvarni deploy i e2e provjera na Sepoliji još nisu provedeni.
+- Napomena: Trenutačna implementacija odbija oporavak novčanika dok postoje neriješene prijave meča. Automatsko poništavanje prijave nakon roka još nije implementirano.
+- Predložena commit poruka: `feat: add BoxChain Sepolia deployment and frontend integration`
+- Commit: nije napravljen.

@@ -8,4 +8,5 @@ artifacts/
 coverage/
 typechain-types/
 types/
+frontend/src/generated/
 .DS_Store

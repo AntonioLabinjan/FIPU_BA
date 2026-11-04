@@ -4,11 +4,14 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "predev": "cd .. && npx hardhat compile && cd frontend && node scripts/generate-contract-artifact.js",
     "dev": "vite",
+    "prebuild": "cd .. && npx hardhat compile && cd frontend && node scripts/generate-contract-artifact.js",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
+    "ethers": "^6.15.0",
     "pinia": "^4.1.0",
     "vue": "^3.5.44"
   },

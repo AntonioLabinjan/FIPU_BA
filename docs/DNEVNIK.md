@@ -62,5 +62,5 @@
 - Što je AI napravio drugačije nego što sam očekivao: U repozitoriju nije postojala implementacija `BoxChainModul`, samo sučelje, pa ju je dodao zajedno s testovima. Nije izvršio stvarni Sepolia deploy jer integrirani browser nije imao MetaMask; transakcija nije poslana i adresa ugovora još nije dobivena.
 - Provjera: `npm test` — 18 testova prošlo; `npm --prefix frontend run build` — uspješan; lokalna browser provjera prikaza aplikacije — uspješna. Stvarni deploy i e2e provjera na Sepoliji još nisu provedeni.
 - Napomena: Trenutačna implementacija odbija oporavak novčanika dok postoje neriješene prijave meča. Automatsko poništavanje prijave nakon roka još nije implementirano.
-- Predložena commit poruka: `feat: add BoxChain Sepolia deployment and frontend integration`
-- Commit: nije napravljen.
+- Commit poruka: `feat: add BoxChain Sepolia deployment and frontend integration`
+- Commit: 6bfcb67a2f11326ffb564fac9dd538ac046035b7

@@ -4,7 +4,8 @@ import { BrowserProvider, Contract, ContractFactory, formatUnits, getAddress, is
 import moduleArtifact from './generated/BoxChainModulArtifact.js'
 
 const SEPOLIA_CHAIN_ID = 11155111
-const MODULE_ADDRESS_STORAGE_KEY = 'boxchain.moduleAddress'
+const LOCAL_HARDHAT_CHAIN_ID = 31337
+const LEGACY_MODULE_ADDRESS_STORAGE_KEY = 'boxchain.moduleAddress'
 const configuredModuleAddress = (import.meta.env.VITE_BOXCHAIN_MODULE_ADDRESS || '').trim()
 const moduleAddress = ref(configuredModuleAddress)
 const MODULE_ABI = [
@@ -51,13 +52,37 @@ const deployedModuleAddress = ref('')
 
 const isConnected = computed(() => Boolean(account.value))
 const isOnSepolia = computed(() => chainId.value === SEPOLIA_CHAIN_ID)
+const isOnLocalHardhat = computed(() => chainId.value === LOCAL_HARDHAT_CHAIN_ID)
+const isSupportedNetwork = computed(() => isOnSepolia.value || isOnLocalHardhat.value)
 const hasModuleAddress = computed(() => isAddress(moduleAddress.value))
-const canReadContracts = computed(() => isConnected.value && isOnSepolia.value && hasModuleAddress.value)
+const canReadContracts = computed(() => isConnected.value && isSupportedNetwork.value && hasModuleAddress.value)
 const networkName = computed(() => {
   if (!chainId.value) return 'Not connected'
-  return isOnSepolia.value ? 'Sepolia' : `Unsupported network (${chainId.value})`
+  if (isOnSepolia.value) return 'Sepolia'
+  if (isOnLocalHardhat.value) return 'Local Hardhat'
+  return `Unsupported network (${chainId.value})`
 })
 const formattedBalance = computed(() => `${balance.value} ${tokenSymbol.value}`)
+const explorerBaseUrl = computed(() => isOnSepolia.value ? 'https://sepolia.etherscan.io' : '')
+
+function moduleAddressStorageKey(networkChainId) {
+  return `boxchain.moduleAddress.${networkChainId}`
+}
+
+function getModuleAddressForChain(networkChainId) {
+  if (networkChainId === SEPOLIA_CHAIN_ID && configuredModuleAddress) {
+    return configuredModuleAddress
+  }
+  if (networkChainId !== SEPOLIA_CHAIN_ID && networkChainId !== LOCAL_HARDHAT_CHAIN_ID) {
+    return ''
+  }
+
+  let savedAddress = window.localStorage.getItem(moduleAddressStorageKey(networkChainId)) || ''
+  if (!savedAddress && networkChainId === SEPOLIA_CHAIN_ID) {
+    savedAddress = window.localStorage.getItem(LEGACY_MODULE_ADDRESS_STORAGE_KEY) || ''
+  }
+  return savedAddress && isAddress(savedAddress) ? getAddress(savedAddress) : ''
+}
 
 function displayError(error) {
   if (error?.code === 4001 || error?.code === 'ACTION_REJECTED') {
@@ -122,6 +147,7 @@ async function refreshWallet() {
     ])
     account.value = accounts[0] || ''
     chainId.value = Number.parseInt(currentChainId, 16)
+    moduleAddress.value = getModuleAddressForChain(chainId.value)
     await refreshProfile()
   } catch (error) {
     walletError.value = displayError(error)
@@ -131,6 +157,7 @@ async function refreshWallet() {
 function handleAccountsChanged(accounts) {
   account.value = accounts[0] || ''
   transactionHash.value = ''
+  deployedModuleAddress.value = ''
   successMessage.value = ''
   walletError.value = ''
   void refreshWallet()
@@ -138,24 +165,13 @@ function handleAccountsChanged(accounts) {
 
 function handleChainChanged() {
   transactionHash.value = ''
+  deployedModuleAddress.value = ''
   successMessage.value = ''
   walletError.value = ''
   void refreshWallet()
 }
 
 onMounted(async () => {
-  if (!configuredModuleAddress) {
-    try {
-      const savedAddress = window.localStorage.getItem(MODULE_ADDRESS_STORAGE_KEY) || ''
-      if (savedAddress && isAddress(savedAddress)) {
-        moduleAddress.value = getAddress(savedAddress)
-        deployedModuleAddress.value = moduleAddress.value
-      }
-    } catch (error) {
-      walletError.value = `Unable to load the saved module address: ${displayError(error)}`
-    }
-  }
-
   if (!ethereum) return
   ethereum.on?.('accountsChanged', handleAccountsChanged)
   ethereum.on?.('chainChanged', handleChainChanged)
@@ -188,13 +204,14 @@ async function deployModule() {
   walletError.value = ''
   successMessage.value = ''
   transactionHash.value = ''
+  deployedModuleAddress.value = ''
 
   if (!ethereum || !isConnected.value) {
     walletError.value = 'Connect MetaMask before deploying BoxChain.'
     return
   }
-  if (!isOnSepolia.value) {
-    walletError.value = 'Switch to Sepolia before deploying BoxChain.'
+  if (!isSupportedNetwork.value) {
+    walletError.value = 'Switch MetaMask to Sepolia or Local Hardhat before deploying BoxChain.'
     return
   }
   if (hasModuleAddress.value) {
@@ -223,7 +240,10 @@ async function deployModule() {
     await refreshProfile()
     successMessage.value = 'BoxChain module and token deployed successfully.'
     try {
-      window.localStorage.setItem(MODULE_ADDRESS_STORAGE_KEY, address)
+      window.localStorage.setItem(moduleAddressStorageKey(chainId.value), address)
+      if (isOnSepolia.value) {
+        window.localStorage.setItem(LEGACY_MODULE_ADDRESS_STORAGE_KEY, address)
+      }
     } catch (error) {
       walletError.value = `Deployment succeeded, but the address could not be saved in this browser: ${displayError(error)}`
     }
@@ -234,7 +254,7 @@ async function deployModule() {
   }
 }
 
-async function switchToSepolia() {
+async function switchNetwork(networkConfig) {
   walletError.value = ''
   if (!ethereum) {
     walletError.value = 'MetaMask was not detected. Install MetaMask and try again.'
@@ -244,7 +264,7 @@ async function switchToSepolia() {
   try {
     await ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: '0xaa36a7' }],
+      params: [{ chainId: networkConfig.chainId }],
     })
   } catch (error) {
     if (error?.code !== 4902) {
@@ -255,21 +275,49 @@ async function switchToSepolia() {
     try {
       await ethereum.request({
         method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: '0xaa36a7',
-          chainName: 'Sepolia',
-          nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-          rpcUrls: ['https://rpc.sepolia.org'],
-          blockExplorerUrls: ['https://sepolia.etherscan.io'],
-        }],
+        params: [networkConfig],
       })
       await ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0xaa36a7' }],
+        params: [{ chainId: networkConfig.chainId }],
       })
     } catch (addError) {
       walletError.value = displayError(addError)
     }
+  }
+  await refreshWallet()
+}
+
+async function switchToSepolia() {
+  await switchNetwork({
+    chainId: '0xaa36a7',
+    chainName: 'Sepolia',
+    nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['https://rpc.sepolia.org'],
+    blockExplorerUrls: ['https://sepolia.etherscan.io'],
+  })
+}
+
+async function switchToLocalHardhat() {
+  await switchNetwork({
+    chainId: '0x7a69',
+    chainName: 'Hardhat Local',
+    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+    rpcUrls: ['http://127.0.0.1:8545'],
+  })
+}
+
+function forgetLocalDeployment() {
+  try {
+    window.localStorage.removeItem(moduleAddressStorageKey(LOCAL_HARDHAT_CHAIN_ID))
+    moduleAddress.value = ''
+    deployedModuleAddress.value = ''
+    successMessage.value = ''
+    transactionHash.value = ''
+    clearProfile()
+    walletError.value = ''
+  } catch (error) {
+    walletError.value = `Unable to clear the saved local module address: ${displayError(error)}`
   }
 }
 
@@ -277,9 +325,10 @@ async function submitTransaction(sendTransaction, onConfirmed) {
   walletError.value = ''
   successMessage.value = ''
   transactionHash.value = ''
+  deployedModuleAddress.value = ''
 
   if (!canReadContracts.value) {
-    walletError.value = 'Connect MetaMask on Sepolia and configure the BoxChain module address.'
+    walletError.value = 'Connect MetaMask on Sepolia or Local Hardhat and configure the BoxChain module address.'
     return false
   }
 
@@ -384,7 +433,7 @@ async function lookupMatch() {
     return
   }
   if (!canReadContracts.value) {
-    walletError.value = 'Connect MetaMask on Sepolia and configure the BoxChain module address.'
+    walletError.value = 'Connect MetaMask on Sepolia or Local Hardhat and configure the BoxChain module address.'
     return
   }
 
@@ -415,7 +464,7 @@ async function lookupMatch() {
         <span class="brand-mark" aria-hidden="true">B</span>
         <span>BoxChain</span>
       </a>
-      <span class="network-pill" :class="{ 'network-pill-active': isOnSepolia }">
+      <span class="network-pill" :class="{ 'network-pill-active': isSupportedNetwork }">
         <span class="network-dot" aria-hidden="true"></span>
         {{ networkName }}
       </span>
@@ -427,16 +476,8 @@ async function lookupMatch() {
       >
         Connect wallet
       </button>
-      <button
-        v-else-if="!isOnSepolia"
-        class="button button-dark connect-button"
-        type="button"
-        @click="switchToSepolia"
-      >
-        Switch to Sepolia
-      </button>
       <a
-        v-else
+        v-else-if="isOnSepolia"
         class="account-chip"
         :href="`https://sepolia.etherscan.io/address/${account}`"
         target="_blank"
@@ -445,6 +486,25 @@ async function lookupMatch() {
         {{ account.slice(0, 6) }}...{{ account.slice(-4) }}
         <span aria-hidden="true">↗</span>
       </a>
+      <span v-else class="account-chip">
+        {{ account.slice(0, 6) }}...{{ account.slice(-4) }}
+      </span>
+      <button
+        v-if="isConnected && !isOnLocalHardhat"
+        class="button button-dark connect-button"
+        type="button"
+        @click="switchToLocalHardhat"
+      >
+        Local Hardhat
+      </button>
+      <button
+        v-else-if="isConnected && isOnLocalHardhat"
+        class="button button-dark connect-button"
+        type="button"
+        @click="switchToSepolia"
+      >
+        Sepolia
+      </button>
     </header>
 
     <section class="hero">
@@ -464,9 +524,9 @@ async function lookupMatch() {
       </div>
     </section>
 
-    <section v-if="!hasModuleAddress" class="notice notice-warning" role="status">
+    <section v-if="isSupportedNetwork && !hasModuleAddress" class="notice notice-warning" role="status">
       <strong>No module deployed yet</strong>
-      <span>Connect MetaMask on Sepolia to deploy BoxChainModul. The connected wallet will pay Sepolia gas fees.</span>
+      <span>Connect MetaMask on {{ networkName }} to deploy BoxChainModul. The connected wallet will pay transaction fees.</span>
     </section>
 
     <section v-if="!isConnected" class="welcome-card">
@@ -475,23 +535,33 @@ async function lookupMatch() {
         <h2>{{ hasModuleAddress ? 'Connect to your career' : 'Connect to deploy BoxChain' }}</h2>
         <p>
           {{ hasModuleAddress
-            ? 'Connect MetaMask on Sepolia to register, view your BOX score, or report a match.'
-            : 'Connect MetaMask on Sepolia. You will review and approve the deployment transaction in your wallet.' }}
+              ? `Connect MetaMask on ${networkName} to register, view your BOX score, or report a match.`
+              : 'Connect MetaMask on Sepolia or Local Hardhat. You will review and approve the deployment transaction in your wallet.' }}
         </p>
       </div>
       <button class="button button-primary" type="button" @click="connectWallet">Connect MetaMask</button>
     </section>
 
     <template v-else>
-      <section v-if="!isOnSepolia" class="notice notice-warning" role="status">
-        <span>BoxChain is available on Sepolia. Switch networks to continue.</span>
-        <button class="button button-small button-dark" type="button" @click="switchToSepolia">Switch network</button>
+      <section v-if="isOnLocalHardhat && hasModuleAddress" class="notice notice-muted">
+        <span>If the Hardhat node was restarted, its old deployment is gone. Clear the saved address to deploy again.</span>
+        <button class="button button-small button-dark" type="button" @click="forgetLocalDeployment">
+          Clear local deployment
+        </button>
+      </section>
+
+      <section v-if="!isSupportedNetwork" class="notice notice-warning" role="status">
+        <span>Choose Sepolia or Local Hardhat in MetaMask to continue.</span>
+        <div class="network-switch-options">
+          <button class="button button-small button-dark" type="button" @click="switchToSepolia">Switch to Sepolia</button>
+          <button class="button button-small button-dark" type="button" @click="switchToLocalHardhat">Switch to Local Hardhat</button>
+        </div>
       </section>
 
       <section v-else-if="!hasModuleAddress" class="action-card deploy-card">
         <div class="action-icon" aria-hidden="true">01</div>
         <div class="action-copy">
-          <p class="eyebrow">SEPOLIA DEPLOYMENT</p>
+          <p class="eyebrow">{{ isOnLocalHardhat ? 'LOCAL HARDHAT DEPLOYMENT' : 'SEPOLIA DEPLOYMENT' }}</p>
           <h2>Deploy BoxChain contracts</h2>
           <p>
             This deploys BoxChainModul and its BoxToken from your connected wallet. Review the network and gas estimate
@@ -523,9 +593,10 @@ async function lookupMatch() {
           <article class="wallet-card">
             <span class="card-label">CONNECTED WALLET</span>
             <p class="wallet-address">{{ account }}</p>
-            <a :href="`https://sepolia.etherscan.io/address/${account}`" target="_blank" rel="noopener noreferrer">
+            <a v-if="isOnSepolia" :href="`${explorerBaseUrl}/address/${account}`" target="_blank" rel="noopener noreferrer">
               View on Etherscan <span aria-hidden="true">↗</span>
             </a>
+            <span v-else>Local Hardhat node</span>
           </article>
         </div>
 
@@ -636,35 +707,41 @@ async function lookupMatch() {
       <p>{{ successMessage }}</p>
       <p v-if="deployedModuleAddress" class="deployed-address">
         Module address:
-        <a
-          :href="`https://sepolia.etherscan.io/address/${deployedModuleAddress}`"
+        <a v-if="isOnSepolia"
+          :href="`${explorerBaseUrl}/address/${deployedModuleAddress}`"
           target="_blank"
           rel="noopener noreferrer"
         >{{ deployedModuleAddress }} <span aria-hidden="true">↗</span></a>
+        <code v-else>{{ deployedModuleAddress }}</code>
       </p>
-      <p v-if="deployedModuleAddress" class="deployment-instructions">
+      <p v-if="deployedModuleAddress && isOnLocalHardhat" class="deployment-instructions">
+        This local deployment address is saved in this browser for the Hardhat network.
+      </p>
+      <p v-else-if="deployedModuleAddress && isOnSepolia" class="deployment-instructions">
         It is saved in this browser. To use it in another browser, add
         <code>VITE_BOXCHAIN_MODULE_ADDRESS={{ deployedModuleAddress }}</code>
         to <code>frontend/.env.local</code> and restart Vite.
       </p>
       <a
-        v-if="transactionHash"
-        :href="`https://sepolia.etherscan.io/tx/${transactionHash}`"
+        v-if="transactionHash && isOnSepolia"
+        :href="`${explorerBaseUrl}/tx/${transactionHash}`"
         target="_blank"
         rel="noopener noreferrer"
       >
         View transaction <span aria-hidden="true">↗</span>
       </a>
+      <p v-else-if="transactionHash" class="deployment-instructions">Transaction: <code>{{ transactionHash }}</code></p>
     </div>
     <div v-else-if="transactionHash" class="feedback feedback-success" role="status">
       <p>Transaction confirmed.</p>
-      <a :href="`https://sepolia.etherscan.io/tx/${transactionHash}`" target="_blank" rel="noopener noreferrer">
+      <a v-if="isOnSepolia" :href="`${explorerBaseUrl}/tx/${transactionHash}`" target="_blank" rel="noopener noreferrer">
         View transaction <span aria-hidden="true">↗</span>
       </a>
+      <p v-else class="deployment-instructions">Transaction: <code>{{ transactionHash }}</code></p>
     </div>
 
     <footer class="page-footer">
-      <span>BOXCHAIN · SEPOLIA</span>
+      <span>BOXCHAIN · {{ networkName.toUpperCase() }}</span>
       <span>Transactions are signed in your wallet. Never share your recovery phrase or private keys.</span>
     </footer>
   </main>

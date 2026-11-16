@@ -94,3 +94,10 @@ eth_call
   Contract call:       BoxChainModul#boxToken
   From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
   To:                  0x5fbdb2315678afecb367f032d93f642f64180aa3
+
+## Lokalno E2E testiranje frontend-a i Hardhata
+- Datum: 2026-11-16
+- Cilj: Povezati postojeći Vue frontend s lokalnim Hardhat nodeom kako bi se deploy, registracija i mečevi mogli testirati bez Sepolia ETH-a.
+- Što je napravljeno: Frontend podržava Sepoliju i Local Hardhat (chain ID `31337`), može dodati/prebaciti MetaMask mrežu, deployati modul iz UI-ja i spremiti adresu odvojeno za svaku mrežu. Dodana je `scripts/fund-local-account.js` skripta za slanje 10 lokalnih testnih ETH-a javnoj adresi te su u README-u opisani koraci za lokalni e2e test.
+- Provjera: `npm --prefix frontend run build` uspješan; `npm test` — 31 test prošao; funding skripta uspješno izvršena na privremenoj lokalnoj Hardhat mreži; frontend se učitao u browseru. Lokalni Hardhat RPC odgovarao je na chain ID `31337`.
+- Ograničenje: Stvarni deploy iz Brave Walleta na Local Hardhat nije potvrđen. Wallet je odbio transakciju s `Nonce too high` (očekivan nonce 0, poslan 13); deploy transakcija je također prijavila `StackUnderflow`. Potrebno je riješiti nesklad noncea pa ponoviti ručni e2e deploy prije nego što se može potvrditi da cijeli UI→wallet→Hardhat tok radi.

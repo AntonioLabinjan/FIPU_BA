@@ -38,10 +38,13 @@ describe("BoxChainToken acceptance criteria", function () {
     expect(await token.balanceOf(boxer.address)).to.equal(box("50"));
   });
 
+  // definiramo 1 test s točnim nazivom kriterija iz SPECS
   it("K2: rejects registering the same boxer twice", async function () {
+    // uzimamo prvi testni račun...isto kao da imamo accounts[0] i da ga zovemo boxer
     const [boxer] = accounts;
+    // postavi stanje kao da je taj račun već registriran => poziv funkcije za registraciju
     await registerBoxers(boxer);
-
+    // pokušaj registracije istog računa ponovno i očekuj da se transakcija odbije s točnom porukom
     await expect(module.connect(boxer).registerBoxer())
       .to.be.revertedWith("Boxer already registered.");
   });

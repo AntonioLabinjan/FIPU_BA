@@ -560,6 +560,12 @@ a:focus-visible,
   flex: 0 0 auto;
 }
 
+.network-switch-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .notice-warning code {
   padding: 2px 5px;
   border-radius: 4px;

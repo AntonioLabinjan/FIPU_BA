@@ -63,4 +63,4 @@
 - Provjera: `npm test` — 18 testova prošlo; `npm --prefix frontend run build` — uspješan; lokalna browser provjera prikaza aplikacije — uspješna. Stvarni deploy i e2e provjera na Sepoliji još nisu provedeni.
 - Napomena: Trenutačna implementacija odbija oporavak novčanika dok postoje neriješene prijave meča. Automatsko poništavanje prijave nakon roka još nije implementirano.
 - Predložena commit poruka: `feat: add BoxChain Sepolia deployment and frontend integration`
-- Commit: nije napravljen.
+- Commit: 6bfcb67a2f11326ffb564fac9dd538ac046035b7.

@@ -6,10 +6,28 @@
     "test": "hardhat test"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
-    "hardhat": "^3.0.0"
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",
+    "hardhat": "^3.22.0"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.0.0"
-  }
+  },
+  "version": "1.0.0",
+  "description": "BoxChain tracks on-chain boxing careers on Sepolia. Boxers register their wallets, report match outcomes with their opponents, and view their BOX score and career status.",
+  "main": "hardhat.config.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AntonioLabinjan/FIPU_BA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AntonioLabinjan/FIPU_BA/issues"
+  },
+  "homepage": "https://github.com/AntonioLabinjan/FIPU_BA#readme"
 }

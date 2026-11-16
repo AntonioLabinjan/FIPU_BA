@@ -183,12 +183,18 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 
 ## Sljedivost
 
-| Funkcija | Kriteriji |
-|---|---|
-| Samostalna registracija boksača i početna dodjela 50 BOX | K1, K2 |
-| Prijava i potvrda ishoda pobjeda/poraz te poravnanje salda i nagrade | K3, K4, K6, K7, K8 |
-| Prijava i potvrda remija | K5, K6, K7, K8 |
-| Pregled salda i statusa karijere | K11 |
-| Prijenos BOX u sklopu potvrđenog meča i zabrana samostalnog prijenosa | K3, K4, K5, K12 |
-| Prijenos scorea i salda na novi novčanik | K9, K10 |
-| Čitanje metapodataka BoxTokena | K13 |
+| Funkcija | Kriterij | Test |
+|---|---|---|
+| Samostalna registracija boksača i početna dodjela 50 BOX | K1 | `K1: registering a boxer allocates 50 BOX` |
+| Samostalna registracija boksača i početna dodjela 50 BOX | K2 | `K2: rejects registering the same boxer twice` |
+| Prijava i potvrda ishoda pobjeda/poraz te poravnanje salda i nagrade | K3 | `K3: confirms a win and loss, transfers 5 BOX, and rewards the winner 1 BOX` |
+| Prijava i potvrda ishoda pobjeda/poraz te poravnanje salda i nagrade | K4 | `K4: transfers the loser's remaining balance when it is below 5 BOX` |
+| Prijava i potvrda remija | K5 | `K5: confirms a draw without changing either balance` |
+| Prijava i potvrda ishoda pobjeda/poraz te poravnanje salda i nagrade; prijava i potvrda remija | K6 | `K6: rejects results that do not match the first report` |
+| Prijava i potvrda ishoda pobjeda/poraz te poravnanje salda i nagrade; prijava i potvrda remija | K7 | `K7: rejects a match report from a boxer whose career has ended` |
+| Prijava i potvrda ishoda pobjeda/poraz te poravnanje salda i nagrade; prijava i potvrda remija | K8 | `K8: rejects match reports involving an unregistered boxer` |
+| Prijenos scorea i salda na novi novčanik | K9 | `K9: recovers registration, career status, and balance to a new wallet` |
+| Prijenos scorea i salda na novi novčanik | K10 | `K10: rejects wallet recovery not authorized by the current wallet` |
+| Pregled salda i statusa karijere | K11 | `K11: exposes the boxer's current balance and career status` |
+| Prijenos BOX u sklopu potvrđenog meča i zabrana samostalnog prijenosa | K12 | `K12: rejects standalone token transfers and leaves balances unchanged` |
+| Čitanje metapodataka BoxTokena | K13 | `K13: returns the specified token metadata` |

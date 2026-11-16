@@ -64,3 +64,9 @@
 - Napomena: Trenutačna implementacija odbija oporavak novčanika dok postoje neriješene prijave meča. Automatsko poništavanje prijave nakon roka još nije implementirano.
 - Predložena commit poruka: `feat: add BoxChain Sepolia deployment and frontend integration`
 - Commit: 6bfcb67a2f11326ffb564fac9dd538ac046035b7.
+
+## Vježba 4: testovi
+- Prompt: „Prema kriterijima prihvaćanja K1–K13 u `docs/SPEC.md` napiši Hardhat 3 testove u JavaScript ESM-u, po jedan neovisan `it()` test po kriteriju, koristeći Mocha, Chai i ethers v6. Provjeri točne poruke grešaka i događaje; nemoj mijenjati ugovor.”
+- Testova: 13, prolazi: 13 (`npx hardhat test test/BoxChainToken.test.js`).
+- Greška AI-ja koju sam uočio: U testu K4 prvo je izostavljena prva prijava meča, pa test nije mogao očekivati potvrđeni meč. Ispravljeno je dodavanjem prijave prije potvrde.
+- Mutacijska provjera: privremeno sam zakomentirao `require(!isRegistered[msg.sender], "Boxer already registered.")` u `BoxChainModul.sol`; pao je test „K2: rejects registering the same boxer twice”. Vratio sam `require` i svih 13 testova ponovno je prošlo.

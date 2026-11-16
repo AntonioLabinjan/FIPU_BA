@@ -70,3 +70,27 @@
 - Testova: 13, prolazi: 13 (`npx hardhat test test/BoxChainToken.test.js`).
 - Greška AI-ja koju sam uočio: U testu K4 prvo je izostavljena prva prijava meča, pa test nije mogao očekivati potvrđeni meč. Ispravljeno je dodavanjem prijave prije potvrde.
 - Mutacijska provjera: privremeno sam zakomentirao `require(!isRegistered[msg.sender], "Boxer already registered.")` u `BoxChainModul.sol`; pao je test „K2: rejects registering the same boxer twice”. Vratio sam `require` i svih 13 testova ponovno je prošlo.
+
+## Vježba 4: objava na lokalnoj mreži
+- Adresa ugovora / hash transakcije / blok / gas: `0x5fbdb2315678afecb367f032d93f642f64180aa3` / `0x6334eb448c9a7d054fd21b62d6f70fd5848866b220b2096edd5c47dceb1b4a0b` / `1` (`0x20ce45e7caa4fd9aca810cd3c90b8f6798cd7c9c9d0a30e11817c8ac9acfc15a`) / `3,071,535`.
+- Zašto objava troši gas, a čitanje salda ne? Objavljivanje izvršava konstruktor i sprema bytecode ugovora u stanje blockchaina, što zahtijeva izračun i zapis te troši gas. Čitanje salda (`balanceOf`) je `view` poziv: ne mijenja stanje i lokalnim `eth_call` pozivom ne šalje transakciju ni ne troši gas.
+- Zašto je poziv `registerBoxer()` potrošio puno manje gasa od objave? To je obična transakcija nad već objavljenim `BoxChainModul` ugovorom: registrira boksača i dodjeljuje 50 BOX. Za razliku od deploya, ona ne sprema bytecode ugovora u blockchain, već plaća za izvršene operacije i promjene stanja. Zapis deploya iznad ne sadrži registracijsku transakciju, pa njezin gas treba zabilježiti iz zasebnog poziva.
+- Poziv registracije na pokrenutom lokalnom nodeu (zamijeni adresu modula onom iz deploy izlaza): `MODULE_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3 npx hardhat run scripts/register.js --network localhost`. Skripta koristi prvi otključani račun nodea i ispisuje hash transakcije i stvarno potrošeni gas. Pokreni je samo jednom za taj račun jer ponovna registracija pada.
+- Što bi se dogodilo s ugovorom da sad ugasim `npx hardhat node`? Zadani lokalni node drži blockchain stanje u memoriji, pa se gašenjem nodea gubi i deployani ugovor. Ponovnim pokretanjem dobiva se nova lokalna mreža; ugovor treba ponovno objaviti.
+
+Contract deployment iz terminala:
+
+ Contract deployment: BoxChainModul
+  Contract address:    0x5fbdb2315678afecb367f032d93f642f64180aa3
+  Transaction:         0x6334eb448c9a7d054fd21b62d6f70fd5848866b220b2096edd5c47dceb1b4a0b
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  Value:               0 ETH
+  Gas used:            3071535 of 3071535
+  Block #1:            0x20ce45e7caa4fd9aca810cd3c90b8f6798cd7c9c9d0a30e11817c8ac9acfc15a
+
+eth_getTransactionByHash
+eth_getTransactionReceipt
+eth_call
+  Contract call:       BoxChainModul#boxToken
+  From:                0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266
+  To:                  0x5fbdb2315678afecb367f032d93f642f64180aa3

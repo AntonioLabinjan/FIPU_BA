@@ -12,10 +12,13 @@ interface IBoxChainModul {
     function registerBoxer() external;
 
     // Role: A registered boxer with an active career who participates in the match.
-    // SPEC: K3, K4, K5, K6, K7, K8.
+    // SPEC: K3, K4, K5, K6, K7, K8, K15.
     function reportMatch(uint256 matchId, address opponent, MatchResult result) external;
 
-    // Role: The current boxer wallet; SPEC: K9, K10.
+    // Role: Public; SPEC: K14, K15.
+    function expireMatch(uint256 matchId) external;
+
+    // Role: The current boxer wallet; SPEC: K9, K10, K16, K17.
     function recoverWallet(address newWallet) external;
 
     // Role: Public; SPEC: K1, K2, K8.

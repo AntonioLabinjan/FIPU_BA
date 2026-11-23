@@ -9,10 +9,12 @@ contract BoxChainModul is IBoxChainModul {
     uint256 public constant INITIAL_BALANCE = 50 ether;
     uint256 public constant MATCH_TRANSFER = 5 ether;
     uint256 public constant WIN_REWARD = 1 ether;
+    uint256 public constant MATCH_REPORT_TIMEOUT = 7 days;
 
     address public immutable boxToken;
 
     mapping(address boxer => bool) public override isRegistered;
+    mapping(address boxer => bool) private _hasEverRegistered;
     mapping(address boxer => bool) public override isCareerActive;
     mapping(address boxer => uint256) private _pendingMatches;
 
@@ -21,6 +23,7 @@ contract BoxChainModul is IBoxChainModul {
         address boxer2;
         MatchResult result1;
         MatchResult result2;
+        uint256 reportedAt;
         bool hasFirstReport;
         bool completed;
     }
@@ -40,6 +43,7 @@ contract BoxChainModul is IBoxChainModul {
         address indexed loser,
         MatchResult result
     );
+    event MatchExpired(uint256 indexed matchId, address indexed boxer1, address indexed boxer2);
     event CareerEnded(address indexed boxer);
     event WalletRecovered(address indexed oldWallet, address indexed newWallet);
 
@@ -50,8 +54,10 @@ contract BoxChainModul is IBoxChainModul {
 
     function registerBoxer() external override {
         require(!isRegistered[msg.sender], "Boxer already registered.");
+        require(!_hasEverRegistered[msg.sender], "Boxer wallet has already been used.");
 
         isRegistered[msg.sender] = true;
+        _hasEverRegistered[msg.sender] = true;
         isCareerActive[msg.sender] = true;
         IBoxChainToken(boxToken).mint(msg.sender, INITIAL_BALANCE);
         emit BoxerRegistered(msg.sender);
@@ -71,9 +77,9 @@ contract BoxChainModul is IBoxChainModul {
             matchReport.boxer1 = msg.sender;
             matchReport.boxer2 = opponent;
             matchReport.result1 = result;
+            matchReport.reportedAt = block.timestamp;
             matchReport.hasFirstReport = true;
             _pendingMatches[msg.sender] += 1;
-            _pendingMatches[opponent] += 1;
             emit MatchReported(matchId, msg.sender, opponent, result);
             return;
         }
@@ -85,6 +91,10 @@ contract BoxChainModul is IBoxChainModul {
             "Match participants do not match."
         );
         require(msg.sender != matchReport.boxer1, "Boxer has already reported this match.");
+        require(
+            block.timestamp < matchReport.reportedAt + MATCH_REPORT_TIMEOUT,
+            "Match report has expired."
+        );
 
         MatchResult firstResult = matchReport.result1;
         bool isWinLoss = (firstResult == MatchResult.Win && result == MatchResult.Loss)
@@ -95,7 +105,6 @@ contract BoxChainModul is IBoxChainModul {
         matchReport.result2 = result;
         matchReport.completed = true;
         _pendingMatches[matchReport.boxer1] -= 1;
-        _pendingMatches[matchReport.boxer2] -= 1;
 
         if (isDraw) {
             emit MatchConfirmed(matchId, address(0), address(0), MatchResult.Draw);
@@ -118,17 +127,37 @@ contract BoxChainModul is IBoxChainModul {
         emit MatchConfirmed(matchId, winner, loser, firstResult);
     }
 
+    // Role: Public; an unconfirmed report can be cancelled after the reporting deadline.
+    function expireMatch(uint256 matchId) external override {
+        MatchReport storage matchReport = _matches[matchId];
+        require(matchReport.hasFirstReport, "Match does not exist.");
+        require(!matchReport.completed, "Match has already been confirmed.");
+        require(
+            block.timestamp >= matchReport.reportedAt + MATCH_REPORT_TIMEOUT,
+            "Match report has not expired."
+        );
+
+        address boxer1 = matchReport.boxer1;
+        address boxer2 = matchReport.boxer2;
+        _pendingMatches[boxer1] -= 1;
+        delete _matches[matchId];
+
+        emit MatchExpired(matchId, boxer1, boxer2);
+    }
+
     function recoverWallet(address newWallet) external override {
         require(isRegistered[msg.sender], "Only the current boxer wallet can authorize recovery.");
         require(newWallet != address(0), "New wallet cannot be the zero address.");
         require(newWallet != msg.sender, "New wallet must be different.");
         require(!isRegistered[newWallet], "New wallet is already registered.");
+        require(!_hasEverRegistered[newWallet], "New wallet has already been used.");
         require(_pendingMatches[msg.sender] == 0, "Cannot recover a wallet with pending matches.");
 
         bool careerActive = isCareerActive[msg.sender];
         isRegistered[msg.sender] = false;
         isCareerActive[msg.sender] = false;
         isRegistered[newWallet] = true;
+        _hasEverRegistered[newWallet] = true;
         isCareerActive[newWallet] = careerActive;
 
         IBoxChainToken(boxToken).recoverBalance(msg.sender, newWallet);

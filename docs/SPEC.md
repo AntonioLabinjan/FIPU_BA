@@ -6,7 +6,7 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 
 ## Korisnici i uloge
 
-- **Boksač:** samostalno se registrira, pregledava karijeru i saldo te prijavljuje vlastiti ishod meča.
+- **Boksač:** novčanik se jednom registrira, pregledava karijeru i saldo te prijavljuje vlastiti ishod meča.
 - **Nema administratora ni centralnog izdavatelja tokena.** Rezultat meča potvrđuju oba boksača.
 
 ## Odluke o tokenu
@@ -26,6 +26,11 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 - Saldo BOX predstavlja score boksača.
 - Boksač započinje s 50 BOX.
 - Za potvrdu meča oba boksača moraju prijaviti međusobno sukladne ishode: pobjednik prijavi pobjedu, a protivnik poraz; za remi oba prijave remi.
+- Druga prijava mora stići u roku od 7 dana od prve. Nakon isteka bilo koji račun može poništiti nepotvrđenu prijavu; time se ne mijenjaju salda ni ukupna količina, a ID poništenog meča ponovno je slobodan.
+- Nepozvana prva prijava ne blokira oporavak novčanika protivnika. Oporavak blokiraju samo nepotvrđeni mečevi koje je taj novčanik sam prvi prijavio.
+- Potvrđeni ID meča ne može se ponovno koristiti. ID-jevi su globalni; izvor i kanonsko povezivanje ID-ja sa stvarnim mečem ostaju izvan provjere ugovora.
+- Ugovor vjeruje sukladnim prijavama dvaju registriranih novčanika. Ne provjerava identitet osobe iza novčanika niti je li se meč stvarno dogodio.
+- Svaka adresa može biti povezana s najviše jednom karijerom. Oporavak ne oslobađa staru ni novu adresu za buduću registraciju ili ponovnu uporabu.
 - Nakon potvrđenog meča pobjednik dobiva 5 BOX od gubitnika te 1 novostvoreni BOX. Kod remija saldo se ne mijenja.
 - Ako gubitnik ima manje od 5 BOX, prenosi sav preostali saldo. Kada saldo dosegne 0, karijera boksača je završena, neovisno o broju poraza.
 - Vlasnik novčanika ne može biti uklonjen od strane administratora jer administratorska uloga ne postoji. Prijenos scorea i salda na novi novčanik zahtijeva odobrenje starog novčanika; bez pristupa starom novčaniku oporavak nije podržan.
@@ -34,11 +39,12 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 
 ### Samostalna registracija boksača
 
-- **Tko:** novčanik koji još nije registriran.
+- **Tko:** novčanik koji nikada prije nije bio registriran.
 - **Ulazni podaci:** nema dodatnih podataka.
 - **Što radi:** registrira novčanik kao boksača i dodjeljuje mu 50 BOX.
-- **Kada pada:** ako je novčanik već registriran.
+- **Kada pada:** ako je novčanik trenutačno registriran ili je ranije bio povezan s karijerom.
 - **Poruka greške:** `Boxer already registered.`
+- **Poruka greške za ranije korišten novčanik:** `Boxer wallet has already been used.`
 
 ### Prijava i potvrda ishoda meča
 
@@ -46,37 +52,51 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 - **Ulazni podaci:** drugi boksač i ishod iz perspektive pozivatelja: pobjeda, poraz ili remi.
 - **Što radi:** bilježi prvu prijavu; kada drugi boksač prijavi sukladan ishod, potvrđuje meč, ažurira salda i završava karijeru svakog boksača čiji saldo dosegne 0.
 - **Pravila poravnanja:** kod pobjede pobjednik dobiva 5 BOX od gubitnika te 1 novostvoreni BOX; ako gubitnik ima manje od 5 BOX, prenosi cijeli preostali saldo. Kod remija nema prijenosa ni nagrade.
-- **Kada pada:** ako pozivatelj ili protivnik nije registriran, boksači prijave ishode koji nisu sukladni ili je karijera jednog od boksača već završena.
-- **Poruke greške:** `Boxer is not registered.`, `Match result does not match the other participant's report.`, `Career is over.`
+- **Kada pada:** ako pozivatelj ili protivnik nije registriran, boksači prijave ishode koji nisu sukladni, karijera jednog od boksača već je završena ili druga prijava stigne nakon roka.
+- **Poruke greške:** `Boxer is not registered.`, `Match result does not match the other participant's report.`, `Career is over.`, `Match report has expired.`
+
+### Poništavanje istekle prijave meča
+
+- **Tko:** bilo koji račun.
+- **Ulazni podaci:** ID nepotvrđenog meča.
+- **Što radi:** nakon isteka 7 dana od prve prijave poništava prijavu, oslobađa oba boksača iz stanja čekanja i oslobađa ID meča za ponovnu uporabu. Salda i ukupna količina tokena ostaju nepromijenjeni.
+- **Kada pada:** ako ID ne postoji, meč je već potvrđen ili rok od 7 dana još nije istekao.
+- **Poruke greške:** `Match does not exist.`, `Match has already been confirmed.`, `Match report has not expired.`
+- **Ograničenje:** druga prijava nakon isteka roka pada s `Match report has expired.`; potvrđeni ID-jevi ostaju trajno zauzeti.
 
 ### Prijenos salda na novi novčanik
 
 - **Tko:** stari novčanik boksača.
 - **Ulazni podaci:** novi novčanik.
 - **Što radi:** prenosi score i saldo boksača sa starog na novi novčanik uz odobrenje starog novčanika.
-- **Kada pada:** ako poziv ne potpisuje stari novčanik.
+- **Kada pada:** ako poziv ne potpisuje stari novčanik, nova adresa je ranije korištena ili stari novčanik ima vlastite nepotvrđene prijave.
 - **Poruka greške:** `Only the current boxer wallet can authorize recovery.`
+- **Ostale poruke greške:** `New wallet has already been used.`, `Cannot recover a wallet with pending matches.`
 - **Ograničenje:** ako je pristup starom novčaniku izgubljen, prijenos nije moguće autorizirati i oporavak nije podržan.
-- **Ograničenje implementacije:** oporavak nije moguć dok boksač ima neprijavljene mečeve jer se oba izvještaja moraju vezati uz iste novčanike.
+- **Ograničenje implementacije:** oporavak nije moguć dok boksač ima vlastite nepotvrđene prijave. Ako protivnik prvi prijavi meč, boksač se može oporaviti; prijava vezana uz staru adresu tada se ne može potvrditi i može se poništiti nakon 7 dana.
 
 ## Matrica ovlasti
 
 | Radnja | Boksač | Administrator |
 |---|---|---|
-| Registrirati vlastiti novčanik | Da, ako nije registriran | Nema |
+| Registrirati vlastiti novčanik | Da, ako nikada nije korišten | Nema |
 | Prijaviti vlastiti ishod meča | Da, ako je registriran i karijera mu nije završena | Nema |
 | Potvrditi meč | Da, drugi boksač mora prijaviti sukladan ishod | Nema |
+| Poništiti istekli meč | Da, bilo koji račun nakon isteka 7 dana | Nema |
 | Samostalno prenijeti BOX | Ne | Nema |
 | Prenijeti BOX u sklopu potvrđenog meča | Da, prema pravilima meča | Nema |
-| Oporaviti boksača na novom novčaniku | Samo uz potpis starog novčanika | Nema |
+| Oporaviti boksača na novom novčaniku | Samo uz potpis starog novčanika, nekorištenu novu adresu i bez vlastitih prijava na čekanju | Nema |
 | Ručno izdavati tokene ili mijenjati salda | Ne | Nema |
 
 ## Model podataka na lancu
 
 - Adresa novčanika boksača i status registracije.
+- Oznaka je li adresa ikada bila povezana s karijerom.
 - Saldo BOX koji predstavlja score.
 - Status karijere: aktivna ili završena.
 - Prijavljeni ishodi mečeva i stanje njihove potvrde od oba boksača.
+- Broj vlastitih prvih prijava mečeva koje još čekaju potvrdu.
+- Vrijeme prve prijave i rok za potvrdu od 7 dana.
 - Stanje BOX tokena, uključujući početnu dodjelu i nagrade za pobjedu.
 - Adresa tokena dostupna je preko modula; modul pri deployu stvara pripadajući BoxToken.
 
@@ -166,6 +186,30 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 - **Kada:** zatraže se naziv, simbol i broj decimala tokena.
 - **Tada:** vraćaju se `BoxToken`, `BOX` i `18`.
 
+### K14 — Poništavanje istekle prijave
+
+- **Zadano:** meč ima samo jednu prijavu, a prošlo je najmanje 7 dana.
+- **Kada:** bilo koji račun poništi prijavu.
+- **Tada:** prijava nestaje, prvi prijavitelj više nema taj meč na čekanju, ID se može ponovno koristiti, a salda i ukupna količina ostaju nepromijenjeni.
+
+### K15 — Rok za potvrdu i poništavanje
+
+- **Zadano:** prijava je nova ili je meč već potvrđen.
+- **Kada:** netko pokuša prerano poništiti prijavu, poništiti potvrđeni/nepostojeći meč ili potvrditi prijavu nakon isteka.
+- **Tada:** zahtjev pada s odgovarajućom porukom greške i bez promjene stanja.
+
+### K16 — Jedinstvenost novčanika kroz oporavak
+
+- **Zadano:** boksač je oporavio karijeru s ranijeg novčanika na novi.
+- **Kada:** pokuša ponovno registrirati stari novčanik ili oporaviti karijeru na bilo koju ranije korištenu adresu.
+- **Tada:** zahtjev pada, a salda, registracije i ukupna količina ostaju nepromijenjeni.
+
+### K17 — Oporavak od nepozvane prijave
+
+- **Zadano:** protivnik je prvi prijavio nepotvrđeni meč protiv boksača.
+- **Kada:** boksač, koji nije prvi prijavitelj i nema vlastite prijave na čekanju, oporavlja novčanik.
+- **Tada:** oporavak uspije; nepotvrđena prijava vezana uz staru adresu ne može se potvrditi s novom adresom i može se poništiti nakon 7 dana.
+
 ## Izvan opsega
 
 - Administratorske uloge i centralno upravljanje.
@@ -177,7 +221,7 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 ## Otvorena pitanja
 
 - Potvrditi službeni naziv aplikacije i naziv zajednice; **BoxChain** je preuzet iz ranije verzije ove specifikacije.
-- Odrediti kako se jednoznačno označava meč, osobito kada se isti boksači susretnu više puta.
+- Odrediti kako aplikacija povezuje globalni ID s konkretnim stvarnim mečem, osobito kada se isti boksači susretnu više puta; ugovor provjerava jedinstvenost dovršenih ID-jeva, ali ne i njihovu vanjsku autentičnost.
 - Odrediti koje dodatne podatke o meču treba pratiti uz ishod, ako ih ima.
 - Potvrditi jesu li dodatne statistike karijere, osim salda/scorea i ishoda mečeva, potrebne.
 
@@ -198,3 +242,7 @@ Blockchain aplikacija za praćenje boksačkih karijera i scorea. Svaki registrir
 | Pregled salda i statusa karijere | K11 | `K11: exposes the boxer's current balance and career status` |
 | Prijenos BOX u sklopu potvrđenog meča i zabrana samostalnog prijenosa | K12 | `K12: rejects standalone token transfers and leaves balances unchanged` |
 | Čitanje metapodataka BoxTokena | K13 | `K13: returns the specified token metadata` |
+| Poništavanje istekle prijave i oslobađanje boksača/ID-ja | K14 | `S3: an unsolicited report cannot block the opponent's recovery` |
+| Provjera roka potvrde i uvjeta poništavanja | K15 | `S4: only an expired pending match can be cancelled` |
+| Zabrana ponovne uporabe novčanika nakon oporavka | K16 | `S5: a recovered wallet cannot start or receive another career` |
+| Oporavak unatoč nepozvanoj prijavi protivnika | K17 | `S3: an unsolicited report cannot block the opponent's recovery` |

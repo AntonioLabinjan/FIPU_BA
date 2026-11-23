@@ -114,3 +114,13 @@ eth_call
 ## Vježba 5 — Čitanje storage slotova
 - Prepoznati slotovi: slot 3 sadrži naziv tokena `BoxToken`, a slot 4 simbol `BOX`; slot 2 sadrži ukupnu količinu tokena i u ovom ispisu iznosi nula.
 - Privatnost: Lozinku, kod za popust ni osobni podatak ne spremamo u ugovor jer je sadržaj blockchaina javno čitljiv, čak i kada je varijabla označena kao `private`.
+
+## Sekundarna sigurnosna provjera i popravak
+- Sekundarna, neovisna provjera pronašla je da prva prijava može blokirati oporavak novčanika i zauzeti globalni ID bez vremenskog ograničenja. Također je potvrdila da dva novčanika mogu dogovoriti izmišljeni meč; to je preostali rizik obostrane potvrde, koji smo odlučili prihvatiti.
+- Tijekom pripreme testova dodatno je pronađeno da se oporavljeni stari novčanik mogao ponovno registrirati, suprotno ranijoj prihvaćenoj odluci iz T3.
+- Prije popravka: testovi za rok su dali `2 passing, 2 failing` (kasna potvrda je još prolazila, a `expireMatch` nije postojao). S5 je pao jer je ponovna registracija starog novčanika uspjela; S3 je potvrdio da je nepozvana prijava blokirala oporavak protivnika.
+- Popravak prijava: dodan je rok od 7 dana i javni `expireMatch`. Samo prvi prijavitelj ima meč na čekanju za potrebe oporavka; nepozvana prijava ne blokira protivnika. Nakon isteka bilo koji račun može poništiti meč, očistiti brojač prvog prijavitelja i osloboditi ID. Zakašnjela potvrda se odbija, a poništavanje ne mijenja salda ni ukupnu količinu. Frontend nudi poziv za poništavanje.
+- Popravak novčanika: ugovor bilježi adrese koje su ikada bile povezane s karijerom te odbija ponovnu registraciju starog novčanika i oporavak na ranije korištenu adresu.
+- Preostala ograničenja: globalni ID nepotvrđenog meča može se zauzeti do 7 dana; dva novčanika i dalje mogu dogovoriti izmišljeni meč jer je obostrana prijava odabrani izvor istine, a ugovor ne provjerava stvarne identitete ni događaje.
+- Provjera nakon popravka: `npx hardhat test test/Sigurnost.test.js` — 5 testova prošlo; `npm test` — 36 testova prošlo; `npm --prefix frontend run build` — uspješan.
+- Napomena za deploy: popravak je u novom bytecodeu; već deployani moduli nisu nadogradivi i moraju se ponovno deployati da bi ga dobili.

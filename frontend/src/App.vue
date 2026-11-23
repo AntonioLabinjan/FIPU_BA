@@ -14,6 +14,7 @@ const MODULE_ABI = [
   'function isCareerActive(address boxer) view returns (bool)',
   'function registerBoxer()',
   'function reportMatch(uint256 matchId, address opponent, uint8 result)',
+  'function expireMatch(uint256 matchId)',
   'function recoverWallet(address newWallet)',
   'function getMatchStatus(uint256 matchId) view returns (bool exists, bool completed, address boxer1, address boxer2, uint8 result1, uint8 result2)',
 ]
@@ -455,6 +456,30 @@ async function lookupMatch() {
     walletError.value = displayError(error)
   }
 }
+
+async function expirePendingMatch() {
+  if (!matchStatus.value?.exists || matchStatus.value.completed) {
+    walletError.value = 'Check a pending match before cancelling its report.'
+    return
+  }
+
+  const id = BigInt(matchStatus.value.id)
+  await submitTransaction(
+    (module) => module.expireMatch(id),
+    () => {
+      matchStatus.value = {
+        id: id.toString(),
+        exists: false,
+        completed: false,
+        boxer1: '',
+        boxer2: '',
+        result1: '',
+        result2: '',
+      }
+      return 'Expired report cancelled. Both boxers can now recover their wallets.'
+    },
+  )
+}
 </script>
 
 <template>
@@ -670,6 +695,12 @@ async function lookupMatch() {
                   <strong>{{ matchStatus.completed ? 'Match confirmed' : 'Waiting for opponent' }}</strong>
                   <span>{{ matchStatus.boxer1.slice(0, 6) }}… reported {{ matchStatus.result1 }}</span>
                   <span v-if="matchStatus.completed">{{ matchStatus.boxer2.slice(0, 6) }}… reported {{ matchStatus.result2 }}</span>
+                  <template v-if="!matchStatus.completed">
+                    <span>Anyone can cancel this report if the second report is not submitted within 7 days.</span>
+                    <button class="button button-dark" type="button" :disabled="isBusy" @click="expirePendingMatch">
+                      Cancel expired report
+                    </button>
+                  </template>
                 </template>
                 <strong v-else>No report found for match {{ matchStatus.id }}.</strong>
               </div>

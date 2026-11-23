@@ -101,3 +101,11 @@ eth_call
 - Što je napravljeno: Frontend podržava Sepoliju i Local Hardhat (chain ID `31337`), može dodati/prebaciti MetaMask mrežu, deployati modul iz UI-ja i spremiti adresu odvojeno za svaku mrežu. Dodana je `scripts/fund-local-account.js` skripta za slanje 10 lokalnih testnih ETH-a javnoj adresi te su u README-u opisani koraci za lokalni e2e test.
 - Provjera: `npm --prefix frontend run build` uspješan; `npm test` — 31 test prošao; funding skripta uspješno izvršena na privremenoj lokalnoj Hardhat mreži; frontend se učitao u browseru. Lokalni Hardhat RPC odgovarao je na chain ID `31337`.
 - Ograničenje: Stvarni deploy iz Brave Walleta na Local Hardhat nije potvrđen. Wallet je odbio transakciju s `Nonce too high` (očekivan nonce 0, poslan 13); deploy transakcija je također prijavila `StackUnderflow`. Potrebno je riješiti nesklad noncea pa ponoviti ručni e2e deploy prije nego što se može potvrditi da cijeli UI→wallet→Hardhat tok radi.
+
+- Usporedba s Dijelom 1: ni ja ni AI pregledavač nismo pronašli ranjivosti ili odstupanja od specifikacije, pa nema razlika u nalazima.
+
+## Dio 3 — Napadački testovi
+- Nalaz: nema prihvaćenih ranjivosti za popravak; postojeći ugovor već ograničava izdavanje tokena na modul i odbija samostalne prijenose.
+- Testovi: `test/Sigurnost.test.js` dodaje S1 (ne-modul ne može izdavati tokene) i S2 (samostalni `transfer` i neovlašteni `transferFrom` padaju, a salda ostaju ista).
+- Redoslijed crveno-zeleno: testovi su prošli na neizmijenjenom ugovoru (`2 passing`), zato nije bilo pošteno prikazati nepostojeći pad ili napraviti lažni popravak/commit.
+- Provjera: `npx hardhat test test/Sigurnost.test.js` — 2 testa prošla; `npm test` — 33 testa prošla.

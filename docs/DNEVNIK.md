@@ -109,3 +109,8 @@ eth_call
 - Testovi: `test/Sigurnost.test.js` dodaje S1 (ne-modul ne može izdavati tokene) i S2 (samostalni `transfer` i neovlašteni `transferFrom` padaju, a salda ostaju ista).
 - Redoslijed crveno-zeleno: testovi su prošli na neizmijenjenom ugovoru (`2 passing`), zato nije bilo pošteno prikazati nepostojeći pad ili napraviti lažni popravak/commit.
 - Provjera: `npx hardhat test test/Sigurnost.test.js` — 2 testa prošla; `npm test` — 33 testa prošla.
+- Commiti: `96e0f83` dodaje napadačke testove; završni commit bilježi da popravak ugovora nije potreban jer zaštita već prolazi test.
+
+## Vježba 5 — Čitanje storage slotova
+- Prepoznati slotovi: slot 3 sadrži naziv tokena `BoxToken`, a slot 4 simbol `BOX`; slot 2 sadrži ukupnu količinu tokena i u ovom ispisu iznosi nula.
+- Privatnost: Lozinku, kod za popust ni osobni podatak ne spremamo u ugovor jer je sadržaj blockchaina javno čitljiv, čak i kada je varijabla označena kao `private`.
